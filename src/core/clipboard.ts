@@ -16,7 +16,15 @@ export const systemClipboardWriter: ClipboardImageWriter = async (
 	const item = new ClipboardItem({
 		[mime]: new Blob([toArrayBuffer(bytes)], { type: mime }),
 	});
-	await navigator.clipboard.write([item]);
+	if (!navigator?.clipboard?.write) {
+		throw new Error("Clipboard API not available");
+	}
+	try {
+		await navigator.clipboard.write([item]);
+	} catch (e) {
+		// bubble a clearer error to the caller so UI can show a helpful notice
+		throw new Error("Clipboard write failed: " + (e?.message ?? String(e)));
+	}
 };
 /* v8 ignore stop */
 
