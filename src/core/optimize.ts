@@ -12,6 +12,9 @@ const OPTIMIZABLE_MIMES = new Set([
 	"image/bmp",
 ]);
 
+/** Maximum bitmap pixels to allow for re-encoding (guard against OOM). */
+export const MAX_BITMAP_PIXELS = 100_000_000; // ~100 million pixels
+
 /**
  * Re-encodes image bytes to the target format/quality, downscaling to
  * `maxWidth` when it is positive. Returns null when re-encoding is not
@@ -43,6 +46,11 @@ export const canvasReencode: Reencoder = async (
 		new Blob([toArrayBuffer(bytes)], { type: sourceMime }),
 	);
 	try {
+		// Defend against extremely large images that could exhaust renderer memory
+		if (bitmap.width * bitmap.height > MAX_BITMAP_PIXELS) {
+			bitmap.close();
+			return null;
+		}
 		const scale =
 			maxWidth > 0 && bitmap.width > maxWidth ? maxWidth / bitmap.width : 1;
 		const canvas = activeDocument.createElement("canvas");
